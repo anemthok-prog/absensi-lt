@@ -21,5 +21,7 @@ services:
         value: admin
       - key: ADMIN_PASSWORD
         sync: false          # isi password admin tes (min 8, campuran)
+      - key: GURU_DEFAULT_PASSWORD
+        sync: false          # isi password guru PDF (min 8) utk testing login; kosongkan utk skip akun guru
       - key: MAIL_LOGGING
         value: "true"        # mode tes: OTP tampil di layar, ga ngirim email asli
