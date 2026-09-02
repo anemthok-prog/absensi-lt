@@ -8,13 +8,14 @@ import {
 } from '@phosphor-icons/react'
 import api from '../api'
 import Layout from '../components/Layout'
-import { NAMA_BULAN } from '../constants'
 import './Dashboard.css'
+
+const DAY_NAMES = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
 
 function Dashboard({ user, onLogout }) {
   const [stats, setStats] = useState(null)
   const [recent, setRecent] = useState([])
-  const [labelBulan, setLabelBulan] = useState('')
+  const [jadwal, setJadwal] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -32,13 +33,12 @@ function Dashboard({ user, onLogout }) {
         m = m === 1 ? 12 : m - 1
         y = m === 12 ? y - 1 : y
         res = await api.get(`/absensi/stats?bulan=${m}&tahun=${y}`)
-        setLabelBulan(`${NAMA_BULAN[m - 1]} ${y} (rekap)`)
-      } else {
-        setLabelBulan(`${NAMA_BULAN[m - 1]} ${y}`)
       }
       setStats(res.data)
       const rec = await api.get('/absensi?limit=5')
       setRecent(rec.data.absensi || [])
+      const jw = await api.get('/jadwal/saya')
+      setJadwal(jw.data || [])
     } catch (err) {
       console.error('Error:', err)
     } finally {
@@ -54,12 +54,13 @@ function Dashboard({ user, onLogout }) {
     { key: 'izin', label: 'Izin', icon: HandWaving, cls: 'izin' },
     { key: 'alpa', label: 'Alpa', icon: XCircle, cls: 'alpa' },
   ]
+  const todayName = DAY_NAMES[new Date().getDay()]
+  const todayJadwal = jadwal.filter((j) => j.hari === todayName)
 
   return (
     <Layout user={user} onLogout={onLogout} role={user?.role} active="dashboard">
       <div className="page-header">
         <h1>Dashboard</h1>
-        <span className="page-header-sub">Ringkasan kehadiran · {labelBulan}</span>
       </div>
 
       <div className="stats-grid">
@@ -71,13 +72,34 @@ function Dashboard({ user, onLogout }) {
         {cards.map(c => {
           const Icon = c.icon
           return (
-            <div className="stat-card" key={c.key}>
+            <div className={`stat-card accent-${c.cls}`} key={c.key}>
               <div className="stat-label"><Icon weight="duotone" /> {c.label}</div>
               <div className={`value status-${c.cls}`}>{stats ? stats[c.key] : 0}</div>
               <p>hari</p>
             </div>
           )
         })}
+      </div>
+
+      <div className="card">
+        <h2>Jadwal Hari Ini · {todayName}</h2>
+        {todayJadwal.length === 0 ? (
+          <p className="dash-muted">Tidak ada jadwal hari ini.</p>
+        ) : (
+          <div className="dash-jadwal">
+            {todayJadwal.map((j, i) => (
+              <div key={i} className="dash-jadwal-day">
+                <span className="dash-jadwal-hari">{j.jam}</span>
+                <div className="dash-jadwal-items">
+                  <span className="dash-jadwal-item">
+                    <strong>{j.kelas}</strong>
+                    {j.jenis_layanan && <em> · {j.jenis_layanan}</em>}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="card">

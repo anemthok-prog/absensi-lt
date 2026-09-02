@@ -7,6 +7,7 @@ import {
 } from '@phosphor-icons/react'
 import api from '../api'
 import Layout from '../components/Layout'
+import Toast from '../components/Toast'
 import { STATUS_LIST } from '../constants'
 import './Absensi.css'
 
@@ -23,16 +24,25 @@ function Absensi({ user, onLogout }) {
     foto_kegiatan: null,
   })
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
-  const [messageType, setMessageType] = useState('')
+  const [toast, setToast] = useState({ open: false, message: '', type: 'success' })
   const [kelasList, setKelasList] = useState([])
   const [shiftList, setShiftList] = useState([])
 
-  // Ambil daftar kelas & shift dinamis dari DB (dikelola admin)
+  // Ambil shift dari DB; kelas pilihan = kelas yang ada di jadwal milik guru (dari data jadwal),
+  // biar pilihan tidak semua kelas. Fallback ke semua kelas kalau guru belum punya jadwal.
   useEffect(() => {
-    api.get('/kelas')
-      .then((res) => setKelasList((res.data.kelas || []).map((k) => k.nama)))
-      .catch(() => setKelasList([]))
+    api.get('/jadwal/saya')
+      .then((res) => {
+        const kls = [...new Set((res.data || []).map((r) => r.kelas).filter(Boolean))]
+        if (kls.length > 0) {
+          setKelasList(kls.sort())
+        } else {
+          return api.get('/kelas').then((r2) => setKelasList((r2.data.kelas || []).map((k) => k.nama)))
+        }
+      })
+      .catch(() => api.get('/kelas')
+        .then((r2) => setKelasList((r2.data.kelas || []).map((k) => k.nama)))
+        .catch(() => setKelasList([])))
     api.get('/shift')
       .then((res) => setShiftList((res.data.shift || []).map((s) => s.nama)))
       .catch(() => setShiftList([]))
@@ -72,24 +82,19 @@ function Absensi({ user, onLogout }) {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
 
-      setMessageType('success')
-      setMessage('Absensi berhasil disubmit')
+      setToast({ open: true, message: 'Absensi berhasil dikirim', type: 'success' })
 
       // Reset form
-      setTimeout(() => {
-        setFormData({
-          tanggal: new Date().toISOString().split('T')[0],
-          shift: 'siang',
-          kelas: '',
-          status: 'hadir',
-          catatan: '',
-          foto_kegiatan: null,
-        })
-        setMessage('')
-      }, 2000)
+      setFormData({
+        tanggal: new Date().toISOString().split('T')[0],
+        shift: 'siang',
+        kelas: '',
+        status: 'hadir',
+        catatan: '',
+        foto_kegiatan: null,
+      })
     } catch (err) {
-      setMessageType('error')
-      setMessage(err.response?.data?.message || 'Gagal submit absensi')
+      setToast({ open: true, message: err.response?.data?.message || 'Gagal submit absensi', type: 'error' })
     } finally {
       setLoading(false)
     }
@@ -99,16 +104,11 @@ function Absensi({ user, onLogout }) {
     <Layout user={user} onLogout={onLogout} role={user?.role} active="absensi">
       <div className="page-header">
         <h1>Absensi</h1>
-        <p>Catat kehadiran dan aktivitas Anda setiap hari</p>
       </div>
 
-      <div className="card absensi-form-card">
-        {message && (
-          <div className={`alert alert-${messageType}`}>
-            {message}
-          </div>
-        )}
+      <Toast open={toast.open} message={toast.message} type={toast.type} onClose={() => setToast((t) => ({ ...t, open: false }))} />
 
+      <div className="card absensi-form-card">
         <form onSubmit={handleSubmit}>
           <div className="form-row">
             <div className="form-group">

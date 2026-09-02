@@ -11,7 +11,6 @@ function AdminKelas({ user, onLogout }) {
     <Layout user={user} onLogout={onLogout} role="admin" active="kelas">
       <div className="page-header">
         <h1>Kelola Kelas & Shift</h1>
-        <span className="page-header-sub">Tambah, ubah, atau hapus kelas & shift absensi</span>
       </div>
 
       <div className="kelas-tabs">
@@ -120,7 +119,7 @@ function KelasPanel({ user, onLogout }) {
       <div className="card">
         {c.loading ? <div className="loading">Loading...</div> : (
           <table className="table">
-            <thead><tr><th>KELAS</th><th className="th-actions">AKSI</th></tr></thead>
+            <thead><tr><th>Kelas</th><th className="th-actions">Aksi</th></tr></thead>
             <tbody>
               {c.items.map((k) => (
                 <tr key={k.id}>
@@ -128,7 +127,7 @@ function KelasPanel({ user, onLogout }) {
                     {c.editId === k.id ? (
                       <input type="text" className="form-control" value={c.editNama} onChange={(e) => c.setEditNama(e.target.value)} maxLength={10} autoFocus />
                     ) : (
-                      <span className="kelas-name"><ListBullets weight="duotone" /> {k.nama}</span>
+                      <span className="kelas-name">{k.nama}</span>
                     )}
                   </td>
                   <td className="th-actions">
@@ -173,7 +172,7 @@ function ShiftPanel({ user, onLogout }) {
       <div className="card">
         {c.loading ? <div className="loading">Loading...</div> : (
           <table className="table">
-            <thead><tr><th>SHIFT</th><th className="th-actions">AKSI</th></tr></thead>
+            <thead><tr><th>Shift</th><th className="th-actions">Aksi</th></tr></thead>
             <tbody>
               {c.items.map((s) => (
                 <tr key={s.id}>
@@ -181,7 +180,7 @@ function ShiftPanel({ user, onLogout }) {
                     {c.editId === s.id ? (
                       <input type="text" className="form-control" value={c.editNama} onChange={(e) => c.setEditNama(e.target.value)} maxLength={20} autoFocus />
                     ) : (
-                      <span className="kelas-name"><ClockClockwise weight="duotone" /> {s.nama}</span>
+                      <span className="kelas-name">{s.nama}</span>
                     )}
                   </td>
                   <td className="th-actions">

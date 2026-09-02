@@ -7,11 +7,13 @@ import {
   UserCircle,
   Users,
   CalendarCheck,
+  CalendarBlank,
   SignOut,
   Sun,
   Moon,
   ListBullets,
   ShieldCheck,
+  TreeStructure,
 } from '@phosphor-icons/react'
 import { useTheme } from '../ThemeContext'
 import logo from '../assets/logo-sidebar.jpg'
@@ -44,6 +46,7 @@ function Layout({ user, onLogout, role = 'guru', active, children }) {
     { to: '/', label: 'Dashboard', icon: Gauge, key: 'dashboard' },
     { to: '/absensi', label: 'Absensi', icon: ClipboardText, key: 'absensi' },
     { to: '/histori', label: 'Histori', icon: ClockCounterClockwise, key: 'histori' },
+    { to: '/jadwal', label: 'Jadwal', icon: CalendarBlank, key: 'jadwal' },
     { to: '/profil', label: 'Profil', icon: UserCircle, key: 'profil' },
   ]
 
@@ -52,6 +55,7 @@ function Layout({ user, onLogout, role = 'guru', active, children }) {
     { to: '/admin/users', label: 'Manajemen Guru', icon: Users, key: 'users' },
     { to: '/admin/absensi', label: 'Data Absensi', icon: CalendarCheck, key: 'absensi' },
     { to: '/admin/kelas', label: 'Kelola Kelas', icon: ListBullets, key: 'kelas' },
+    { to: '/admin/jadwal', label: 'Jadwal', icon: CalendarBlank, key: 'jadwal' },
     { to: '/admin/audit', label: 'Audit Log', icon: ShieldCheck, key: 'audit' },
     { to: '/profil', label: 'Profil', icon: UserCircle, key: 'profil' },
   ]

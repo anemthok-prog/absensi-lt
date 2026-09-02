@@ -12,7 +12,7 @@ router.get('/', verifyToken, isGuruOrAdmin, async (req, res) => {
     res.json({ shift: result.rows });
   } catch (err) {
     console.error('Get shift error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -36,7 +36,7 @@ router.post('/', verifyToken, isAdmin, [
     }
   } catch (err) {
     console.error('Create shift error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -62,7 +62,7 @@ router.put('/:id', verifyToken, isAdmin, [
     }
   } catch (err) {
     console.error('Update shift error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -83,7 +83,7 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
     res.json({ message: 'Shift dihapus' });
   } catch (err) {
     console.error('Delete shift error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 

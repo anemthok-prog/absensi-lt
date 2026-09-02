@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard'
 import Profil from './pages/Profil'
 import Absensi from './pages/Absensi'
 import Histori from './pages/Histori'
+import Jadwal from './pages/Jadwal'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminUsers from './pages/admin/AdminUsers'
 import AdminAbsensi from './pages/admin/AdminAbsensi'
@@ -72,6 +73,7 @@ function App() {
                 <Route path="/admin/users" element={<AdminUsers user={user} onLogout={handleLogout} />} />
                 <Route path="/admin/absensi" element={<AdminAbsensi user={user} onLogout={handleLogout} />} />
                 <Route path="/admin/kelas" element={<AdminKelas user={user} onLogout={handleLogout} />} />
+                <Route path="/admin/jadwal" element={<Jadwal user={user} onLogout={handleLogout} role="admin" />} />
                 <Route path="/admin/audit" element={<AdminAuditLog user={user} onLogout={handleLogout} />} />
                 <Route path="/profil" element={<Profil user={user} onLogout={handleLogout} onUpdateUser={handleUserUpdate} />} />
                 <Route path="*" element={<Navigate to="/admin" />} />
@@ -83,6 +85,7 @@ function App() {
                 <Route path="/profil" element={<Profil user={user} onLogout={handleLogout} onUpdateUser={handleUserUpdate} />} />
                 <Route path="/absensi" element={<Absensi user={user} onLogout={handleLogout} />} />
                 <Route path="/histori" element={<Histori user={user} onLogout={handleLogout} />} />
+                <Route path="/jadwal" element={<Jadwal user={user} onLogout={handleLogout} role="guru" />} />
                 <Route path="*" element={<Navigate to="/" />} />
               </>
             )}

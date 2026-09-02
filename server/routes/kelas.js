@@ -12,7 +12,7 @@ router.get('/', verifyToken, isGuruOrAdmin, async (req, res) => {
     res.json({ kelas: result.rows });
   } catch (err) {
     console.error('Get kelas error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -35,7 +35,7 @@ router.post('/', verifyToken, isAdmin, [
     }
   } catch (err) {
     console.error('Create kelas error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -61,7 +61,7 @@ router.put('/:id', verifyToken, isAdmin, [
     }
   } catch (err) {
     console.error('Update kelas error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -83,7 +83,7 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
     res.json({ message: 'Kelas dihapus' });
   } catch (err) {
     console.error('Delete kelas error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 

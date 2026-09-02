@@ -62,7 +62,7 @@ router.post('/', verifyToken, isGuruOrAdmin, upload.single('foto_kegiatan'), [
     });
   } catch (err) {
     console.error('Create absensi error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -119,7 +119,7 @@ router.get('/stats', verifyToken, isGuruOrAdmin, async (req, res) => {
     });
   } catch (err) {
     console.error('Get stats error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -147,7 +147,8 @@ router.get('/', verifyToken, isGuruOrAdmin, async (req, res) => {
       params.push(parseInt(bulan), parseInt(tahun));
     }
 
-    query += ' ORDER BY a.tanggal DESC, a.shift DESC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
+    // Urutkan berdasarkan waktu absen (created_at) terbaru dulu
+    query += ' ORDER BY a.created_at DESC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
     params.push(limit, offset);
 
     const result = await pool.query(query, params);
@@ -185,7 +186,7 @@ router.get('/', verifyToken, isGuruOrAdmin, async (req, res) => {
     });
   } catch (err) {
     console.error('Get absensi error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -213,7 +214,7 @@ router.get('/:id', verifyToken, isGuruOrAdmin, async (req, res) => {
     res.json({ absensi });
   } catch (err) {
     console.error('Get absensi error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -241,7 +242,7 @@ router.put('/:id', verifyToken, isAdmin, upload.single('foto_kegiatan'), [
 
     // Check access
     if (req.user.role === 'guru' && absensi.user_id !== req.user.id) {
-      return res.status(403).json({ message: 'Access denied' });
+      return res.status(403).json({ message: 'Akses ditolak' });
     }
 
     // Update only if submitted within 24 hours for guru
@@ -275,7 +276,7 @@ router.put('/:id', verifyToken, isAdmin, upload.single('foto_kegiatan'), [
     });
   } catch (err) {
     console.error('Update absensi error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -297,7 +298,7 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
     res.json({ message: 'Absensi deleted successfully' });
   } catch (err) {
     console.error('Delete absensi error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 

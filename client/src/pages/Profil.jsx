@@ -189,7 +189,6 @@ function Profil({ user, onLogout, onUpdateUser }) {
     <Layout user={user} onLogout={onLogout} role={user?.role} active="profil">
       <div className="page-header">
         <h1>Profil Saya</h1>
-        <p>Kelola informasi profil Anda</p>
       </div>
 
       <div className="card profil-card">

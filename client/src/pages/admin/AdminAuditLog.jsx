@@ -62,7 +62,6 @@ function AdminAuditLog({ user, onLogout }) {
     <Layout user={user} onLogout={onLogout} role="admin" active="audit">
       <div className="page-header">
         <h1>Audit Log</h1>
-        <span className="page-header-sub">Jejak aktivitas pengguna di sistem</span>
       </div>
 
       <div className="card">

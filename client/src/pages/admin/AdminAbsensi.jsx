@@ -9,11 +9,19 @@ import {
   CaretLeft,
   CaretRight,
   Trash,
+  Image,
 } from '@phosphor-icons/react'
 import api from '../../api'
 import Layout from '../../components/Layout'
 import { exportXlsx } from '../../utils/export'
 import { NAMA_BULAN } from '../../constants'
+
+// Format jam dari created_at → "HH:MM" (lokal)
+const pad2 = (n) => String(n).padStart(2, '0')
+const fmtJam = (iso) => {
+  const d = new Date(iso)
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+}
 
 import './AdminAbsensi.css'
 
@@ -77,9 +85,10 @@ function AdminAbsensi({ user, onLogout }) {
       return
     }
 
-    const columns = ['Tanggal', 'Hari', 'Shift', 'Kelas', 'Guru', 'Status', 'Catatan']
+    const columns = ['Tanggal', 'Jam', 'Hari', 'Shift', 'Kelas', 'Guru', 'Status', 'Catatan']
     const rows = absensi.map(a => [
       new Date(a.tanggal).toLocaleDateString('id-ID'),
+      fmtJam(a.created_at),
       a.hari,
       a.shift,
       a.kelas,
@@ -94,7 +103,7 @@ function AdminAbsensi({ user, onLogout }) {
       owner: user?.full_name,
       columns,
       rows,
-      statusCols: [5],
+      statusCols: [6],
     })
   }
 
@@ -125,7 +134,6 @@ function AdminAbsensi({ user, onLogout }) {
     <Layout user={user} onLogout={onLogout} role="admin" active="absensi">
       <div className="page-header">
         <h1>Data Absensi</h1>
-        <p>Lihat dan kelola semua data absensi</p>
       </div>
 
       {message && (
@@ -165,7 +173,7 @@ function AdminAbsensi({ user, onLogout }) {
             </select>
           </div>
 
-          <button onClick={exportReportFile} className="btn btn-primary">
+          <button className="btn btn-secondary btn-sm" onClick={exportReportFile} disabled={absensi.length === 0}>
             <DownloadSimple weight="duotone" /> Ekspor Laporan
           </button>
         </div>
@@ -179,6 +187,7 @@ function AdminAbsensi({ user, onLogout }) {
                 <thead>
                   <tr>
                     <th>Tanggal</th>
+                    <th>Jam</th>
                     <th>Hari</th>
                     <th>Shift</th>
                     <th>Kelas</th>
@@ -193,6 +202,7 @@ function AdminAbsensi({ user, onLogout }) {
                   {absensi.map((abs) => (
                     <tr key={abs.id}>
                       <td>{new Date(abs.tanggal).toLocaleDateString('id-ID')}</td>
+                      <td>{fmtJam(abs.created_at)}</td>
                       <td>{abs.hari}</td>
                       <td className="capitalize">{abs.shift}</td>
                       <td>{abs.kelas}</td>
@@ -205,10 +215,10 @@ function AdminAbsensi({ user, onLogout }) {
                       <td className="catatan-col hide-mobile">{abs.catatan ? abs.catatan.substring(0, 30) + '...' : '-'}</td>
                       <td>
                         {abs.foto_kegiatan ? (
-                          <a href={`/uploads/${abs.foto_kegiatan}`} target="_blank" rel="noopener noreferrer">
-                            <img src={`/uploads/${abs.foto_kegiatan}`} className="photo-thumb" alt="Foto kegiatan" />
+                          <a href={`/uploads/${abs.foto_kegiatan}`} target="_blank" rel="noopener noreferrer" className="photo-icon" title="Lihat foto">
+                            <Image weight="duotone" />
                           </a>
-                        ) : '-'}
+                        ) : <span className="photo-none">-</span>}
                       </td>
                       <td>
                         <button

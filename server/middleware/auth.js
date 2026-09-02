@@ -29,7 +29,7 @@ const isAdmin = async (req, res, next) => {
     next();
   } catch (err) {
     console.error('isAdmin check error:', err);
-    return res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ message: 'Kesalahan server' });
   }
 };
 
@@ -44,7 +44,7 @@ const isGuruOrAdmin = async (req, res, next) => {
     next();
   } catch (err) {
     console.error('isGuruOrAdmin check error:', err);
-    return res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ message: 'Kesalahan server' });
   }
 };
 

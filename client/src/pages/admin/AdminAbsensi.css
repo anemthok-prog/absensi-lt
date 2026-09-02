@@ -50,6 +50,21 @@
   color: var(--text-muted);
 }
 
+/* Kolom Guru: jaga satu baris + ellipsis biar tinggi baris seragam */
+.absensi-table-wrapper .table th:nth-child(6),
+.absensi-table-wrapper .table td:nth-child(6) {
+  white-space: nowrap;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Kolom ikon (Foto & Aksi): ratakan tengah biar konsisten */
+.absensi-table-wrapper .table th:nth-child(9),
+.absensi-table-wrapper .table td:nth-child(9),
+.absensi-table-wrapper .table td:nth-child(10) {
+  text-align: center;
+}
+
 .btn-delete {
   display: inline-flex;
   align-items: center;
@@ -63,7 +78,7 @@
   transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
 
-.btn-delete svg { width: 16px; height: 16px; }
+.btn-delete svg { width: 18px; height: 18px; }
 
 .btn-delete:hover:not(:disabled) {
   color: var(--status-alpa);

@@ -16,6 +16,7 @@ import './AdminDashboard.css'
 
 function AdminDashboard({ user, onLogout }) {
   const [stats, setStats] = useState({})
+  const [recent, setRecent] = useState([])
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
@@ -27,6 +28,8 @@ function AdminDashboard({ user, onLogout }) {
     try {
       const response = await api.get('/admin/dashboard')
       setStats(response.data)
+      const recentRes = await api.get('/absensi?limit=5')
+      setRecent(recentRes.data.absensi || [])
       setLoading(false)
     } catch (err) {
       console.error('Error fetching dashboard:', err)
@@ -52,25 +55,24 @@ function AdminDashboard({ user, onLogout }) {
     <Layout user={user} onLogout={onLogout} role="admin" active="dashboard">
       <div className="page-header">
         <h1>Admin Dashboard</h1>
-        <span className="page-header-sub">Monitoring aktivitas & kehadiran hari ini</span>
       </div>
 
       <div className="stats-grid">
-        <div className="stat-card accent-teal">
-          <div className="stat-row">
-            <span className="stat-label">Total Pengguna</span>
-            <span className="stat-chip"><Users weight="duotone" /></span>
-          </div>
-          <div className="stat-value">{stats.totalUsers || 0}</div>
-        </div>
-        <div className="stat-card accent-user">
+        <div className="stat-card accent-brand">
           <div className="stat-row">
             <span className="stat-label">Total Guru</span>
             <span className="stat-chip"><Users weight="duotone" /></span>
           </div>
           <div className="stat-value">{stats.totalGuru || 0}</div>
         </div>
-        <div className="stat-card accent-info">
+        <div className="stat-card accent-brand">
+          <div className="stat-row">
+            <span className="stat-label">Belum Input</span>
+            <span className="stat-chip"><Warning weight="duotone" /></span>
+          </div>
+          <div className="stat-value">{notSubmitted.length}</div>
+        </div>
+        <div className="stat-card accent-brand">
           <div className="stat-row">
             <span className="stat-label">Absensi Hari Ini</span>
             <span className="stat-chip"><ClockCounterClockwise weight="duotone" /></span>
@@ -79,10 +81,11 @@ function AdminDashboard({ user, onLogout }) {
         </div>
         <div className="stat-card accent-brand">
           <div className="stat-row">
-            <span className="stat-label">Hadir Hari Ini</span>
+            <span className="stat-label">Kehadiran Hari Ini</span>
             <span className="stat-chip"><CheckCircle weight="duotone" /></span>
           </div>
-          <div className="stat-value">{today.hadir || 0}</div>
+          <div className="stat-value">{today.hadir || 0} / {today.total || 0}</div>
+          <div className="stat-sub">hadir dari yang submit</div>
         </div>
       </div>
 
@@ -107,6 +110,22 @@ function AdminDashboard({ user, onLogout }) {
                 <span className="trend-label">{t.tanggal.slice(8, 10)}/{t.tanggal.slice(5, 7)}</span>
               </div>
             ))}
+          </div>
+          <h2 style={{ marginTop: '22px' }}>
+            <ClockCounterClockwise weight="duotone" /> Aktivitas Terbaru
+          </h2>
+          <div className="recent-feed">
+            {recent.length === 0 ? (
+              <p className="ns-empty">Belum ada aktivitas absensi.</p>
+            ) : (
+              recent.map((r) => (
+                <div className="recent-item" key={r.id}>
+                  <span className="recent-name">{r.guru_nama || '-'}</span>
+                  <span className="recent-meta">{r.kelas} · {r.status}</span>
+                  <span className="recent-time">{r.created_at ? new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 

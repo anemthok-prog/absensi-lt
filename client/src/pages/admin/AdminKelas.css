@@ -1,5 +1,5 @@
-.kelas-add { margin-bottom: 16px; }
-.kelas-add-form { display: flex; gap: 10px; align-items: center; max-width: 420px; }
+.kelas-add { margin-bottom: 18px; }
+.kelas-add-form { display: flex; gap: 8px; align-items: center; max-width: 360px; }
 .kelas-add-form .form-control { flex: 1; }
 
 .form-control {
@@ -17,12 +17,14 @@
   box-shadow: 0 0 0 3px var(--accent-dim);
 }
 
-.kelas-name { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
-.kelas-name svg { color: var(--accent); width: 18px; height: 18px; }
+.kelas-name { font-weight: 600; }
 
 .th-actions { width: 120px; text-align: right; }
 .kelas-actions { display: flex; gap: 8px; justify-content: flex-end; }
 .kelas-actions input { width: 120px; }
+/* Tombol ikon aksi: padding simetris & ukuran ikon seragam biar balance */
+.kelas-actions .btn { padding: 8px; }
+.kelas-actions .btn svg { width: 18px; height: 18px; }
 
 .btn-sm {
   padding: 8px 12px;

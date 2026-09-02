@@ -47,7 +47,7 @@ router.post('/users', verifyToken, isAdmin, [
     });
   } catch (err) {
     console.error('Create user error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -57,7 +57,7 @@ router.post('/users/:id/activate', verifyToken, isAdmin, async (req, res) => {
     const { id } = req.params;
     const existing = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
     if (existing.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'Pengguna tidak ditemukan' });
     }
     await pool.query(
       'UPDATE users SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
@@ -67,7 +67,7 @@ router.post('/users/:id/activate', verifyToken, isAdmin, async (req, res) => {
     res.json({ message: 'Pengguna berhasil diaktifkan' });
   } catch (err) {
     console.error('Activate user error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -123,7 +123,7 @@ router.get('/users', verifyToken, isAdmin, async (req, res) => {
     });
   } catch (err) {
     console.error('Get users error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -138,13 +138,13 @@ router.get('/users/:id', verifyToken, isAdmin, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'Pengguna tidak ditemukan' });
     }
 
     res.json({ user: result.rows[0] });
   } catch (err) {
     console.error('Get user error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -170,7 +170,7 @@ router.put('/users/:id', verifyToken, isAdmin, [
     const existing = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
 
     if (existing.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'Pengguna tidak ditemukan' });
     }
 
     // Jangan izinkan admin mengubah role sendiri (hindari kehilangan akses)
@@ -203,7 +203,7 @@ router.put('/users/:id', verifyToken, isAdmin, [
     });
   } catch (err) {
     console.error('Update user error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -223,7 +223,7 @@ router.post('/users/:id/reset-password', verifyToken, isAdmin, [
     const existing = await pool.query('SELECT id FROM users WHERE id = $1', [id]);
 
     if (existing.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'Pengguna tidak ditemukan' });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -238,7 +238,7 @@ router.post('/users/:id/reset-password', verifyToken, isAdmin, [
     res.json({ message: 'Password reset successfully' });
   } catch (err) {
     console.error('Reset password error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -255,7 +255,7 @@ router.post('/users/:id/deactivate', verifyToken, isAdmin, async (req, res) => {
     const existing = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
 
     if (existing.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'Pengguna tidak ditemukan' });
     }
 
     await pool.query(
@@ -268,7 +268,7 @@ router.post('/users/:id/deactivate', verifyToken, isAdmin, async (req, res) => {
     res.json({ message: 'User deactivated successfully' });
   } catch (err) {
     console.error('Deactivate user error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -290,7 +290,7 @@ router.get('/stats/summary', verifyToken, isAdmin, async (req, res) => {
     });
   } catch (err) {
     console.error('Get stats error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -322,7 +322,7 @@ router.get('/audit-logs', verifyToken, isAdmin, async (req, res) => {
     });
   } catch (err) {
     console.error('Get audit logs error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -338,7 +338,7 @@ router.delete('/users/:id', verifyToken, isAdmin, async (req, res) => {
 
     const existing = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
     if (existing.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'Pengguna tidak ditemukan' });
     }
 
     const client = await pool.connect();
@@ -359,7 +359,7 @@ router.delete('/users/:id', verifyToken, isAdmin, async (req, res) => {
     res.json({ message: 'User berhasil dihapus' });
   } catch (err) {
     console.error('Delete user error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -412,7 +412,7 @@ router.get('/dashboard', verifyToken, isAdmin, async (req, res) => {
     });
   } catch (err) {
     console.error('Get admin dashboard error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 

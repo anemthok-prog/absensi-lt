@@ -58,7 +58,7 @@ router.post('/register', [
     });
   } catch (err) {
     console.error('Register error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -82,7 +82,7 @@ router.post('/login', [
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Username atau password salah' });
     }
 
     const user = result.rows[0];
@@ -92,7 +92,7 @@ router.post('/login', [
 
     if (!isValidPassword) {
       await auditLog('LOGIN_FAILED', 'users', user.id, {}, { username }, req);
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Username atau password salah' });
     }
 
     // Generate JWT
@@ -119,7 +119,7 @@ router.post('/login', [
     });
   } catch (err) {
     console.error('Login error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -132,13 +132,13 @@ router.get('/me', require('../middleware/auth').verifyToken, async (req, res) =>
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'Pengguna tidak ditemukan' });
     }
 
     res.json({ user: result.rows[0] });
   } catch (err) {
     console.error('Get user error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -159,7 +159,7 @@ router.put('/me', require('../middleware/auth').verifyToken, [
 
     const existing = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
     if (existing.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'Pengguna tidak ditemukan' });
     }
 
     // Dupe-check email (kecuali diri sendiri)
@@ -193,7 +193,7 @@ router.put('/me', require('../middleware/auth').verifyToken, [
     });
   } catch (err) {
     console.error('Update profile error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -234,7 +234,7 @@ router.put('/password', require('../middleware/auth').verifyToken, [
     res.json({ message: 'Password berhasil diganti' });
   } catch (err) {
     console.error('Change password error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -298,7 +298,7 @@ router.post('/forgot-password', [
     });
   } catch (err) {
     console.error('Forgot password error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -360,7 +360,7 @@ router.post('/verify-otp', [
     res.json({ message: 'OTP valid', reset_token: resetToken, email: lowerEmail });
   } catch (err) {
     console.error('Verify OTP error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -414,7 +414,7 @@ router.post('/reset-password', [
     res.json({ message: 'Password berhasil diubah. Silakan masuk.' });
   } catch (err) {
     console.error('Reset password error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 
@@ -440,7 +440,7 @@ router.put('/me/photo', require('../middleware/auth').verifyToken, upload.single
     res.json({ message: 'Foto profil berhasil diperbarui', user: result.rows[0] });
   } catch (err) {
     console.error('Upload photo error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Kesalahan server' });
   }
 });
 

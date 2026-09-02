@@ -54,7 +54,117 @@ async function runMigrations() {
     await pool.query(`INSERT INTO shift (nama, urutan) VALUES ('siang', 1), ('malam', 2) ON CONFLICT (nama) DO NOTHING`);
     console.log('✓ Seed shift default: siang, malam');
   }
-  console.log('✓ Migrations ready (password_resets, kelas, shift)');
+
+  // ===== Tabel inti (users, absensi, audit_log) =====
+  // Dibuat di sini juga (idempotent) supaya bisa jalan ke DATABASE_URL/hosted
+  // tanpa harus pakai setup-db.js yang butuh DB_* + CREATE DATABASE.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      username VARCHAR(50) UNIQUE NOT NULL,
+      email VARCHAR(100) UNIQUE NOT NULL,
+      password VARCHAR(255) NOT NULL,
+      full_name VARCHAR(100) NOT NULL,
+      nip VARCHAR(20),
+      role VARCHAR(20) NOT NULL DEFAULT 'guru',
+      kelas VARCHAR(10),
+      jabatan VARCHAR(50),
+      no_hp VARCHAR(15),
+      foto_profil VARCHAR(255),
+      status VARCHAR(20) DEFAULT 'active',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS absensi (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      tanggal DATE NOT NULL,
+      hari VARCHAR(10) NOT NULL,
+      shift VARCHAR(20) NOT NULL,
+      kelas VARCHAR(10),
+      status VARCHAR(20) NOT NULL,
+      foto_kegiatan VARCHAR(255),
+      catatan TEXT,
+      lokasi_gps VARCHAR(100),
+      ip_address VARCHAR(45),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, tanggal, shift)
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      action VARCHAR(100) NOT NULL,
+      table_name VARCHAR(50),
+      record_id INTEGER,
+      old_data JSONB,
+      new_data JSONB,
+      ip_address VARCHAR(45),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_absensi_user_id ON absensi(user_id);
+    CREATE INDEX IF NOT EXISTS idx_absensi_tanggal ON absensi(tanggal);
+    CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+    CREATE INDEX IF NOT EXISTS idx_audit_log_user_id ON audit_log(user_id);
+  `);
+
+  console.log('✓ Migrations ready (password_resets, kelas, shift, users, absensi, audit_log)');
+
+  // ===== Fitur JADWAL (layanan tambahan / FDS) =====
+  // guru_map: pemetaan kode (dari PDF jadwal) -> guru + jenis layanan
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS guru_map (
+      id SERIAL PRIMARY KEY,
+      kode VARCHAR(10) UNIQUE NOT NULL,
+      nama_guru VARCHAR(160) NOT NULL,
+      jenis_layanan VARCHAR(120),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  // jadwal: (hari, jam, kelas) -> kode guru (NULL untuk aktivitas khusus: Olim/Ekstra/Pramuka)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS jadwal (
+      id SERIAL PRIMARY KEY,
+      hari VARCHAR(12) NOT NULL,
+      jam VARCHAR(20) NOT NULL,
+      kelas VARCHAR(12) NOT NULL,
+      kode_guru VARCHAR(10) REFERENCES guru_map(kode) ON DELETE CASCADE,
+      keterangan VARCHAR(120),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(hari, jam, kelas)
+    );
+  `);
+  // Backward-compat: kalau kolom sudah ada dengan NOT NULL dari versi lama, longgarkan.
+  await pool.query(`ALTER TABLE jadwal ALTER COLUMN kode_guru DROP NOT NULL`);
+
+  // Link akun user -> guru_map (biar jadwal sesuai nama guru PDF)
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS guru_map_kode VARCHAR(10)`);
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_users_guru_map ON users(guru_map_kode)`
+  );
+
+  // Bootstrap admin pertama — hanya jika ADMIN_PASSWORD di-set (anti default-cred lemah)
+  const bcrypt = require('bcryptjs');
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+  if (adminPassword) {
+    const hashed = await bcrypt.hash(adminPassword, 10);
+    await pool.query(
+      `INSERT INTO users (username, email, password, full_name, role, status)
+       VALUES ($1, $2, $3, $4, 'admin', 'active')
+       ON CONFLICT (username) DO NOTHING`,
+      [adminUsername, `${adminUsername}@mtsn1kebumen.id`, hashed, 'Administrator']
+    );
+    console.log(`✓ Admin siap (username: ${adminUsername})`);
+  } else {
+    console.log('⚠️  ADMIN_PASSWORD belum diset — akun admin TIDAK dibuat otomatis.');
+  }
 }
 
 module.exports = { runMigrations };

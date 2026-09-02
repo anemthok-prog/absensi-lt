@@ -29,10 +29,18 @@ function AdminUsers({ user, onLogout }) {
   const [editUser, setEditUser] = useState(null)
   const emptyForm = { username: '', email: '', password: '', full_name: '', nip: '', kelas: '', jabatan: '', no_hp: '', role: 'guru' }
   const [form, setForm] = useState(emptyForm)
+  const [jenisLayanan, setJenisLayanan] = useState([])
 
   useEffect(() => {
     fetchUsers()
   }, [page, roleFilter, statusFilter])
+
+  // Ambil daftar jenis layanan dari data jadwal (guru_map) utk dropdown form
+  useEffect(() => {
+    api.get('/jadwal/guru-map')
+      .then((res) => setJenisLayanan([...new Set((res.data || []).map((g) => g.jenis_layanan).filter(Boolean))].sort()))
+      .catch(() => setJenisLayanan([]))
+  }, [])
 
   const fetchUsers = async () => {
     try {
@@ -175,7 +183,6 @@ function AdminUsers({ user, onLogout }) {
     <Layout user={user} onLogout={onLogout} role="admin" active="users">
       <div className="page-header">
         <h1>Manajemen Guru</h1>
-        <p>Kelola akun dan data guru</p>
       </div>
 
       {message && (
@@ -352,8 +359,11 @@ function AdminUsers({ user, onLogout }) {
                   <input name="nip" value={form.nip} onChange={handleFormChange} />
                 </div>
                 <div className="form-group">
-                  <label>Jabatan</label>
-                  <input name="jabatan" value={form.jabatan} onChange={handleFormChange} />
+                  <label>Jenis Layanan</label>
+                  <select name="jabatan" value={form.jabatan} onChange={handleFormChange}>
+                    <option value="">— Pilih Jenis Layanan —</option>
+                    {jenisLayanan.map((jl) => <option key={jl} value={jl}>{jl}</option>)}
+                  </select>
                 </div>
                 <div className="form-group">
                   <label>No. HP</label>

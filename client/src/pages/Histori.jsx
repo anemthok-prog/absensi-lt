@@ -8,6 +8,7 @@ import {
   DownloadSimple,
   CaretLeft,
   CaretRight,
+  Image,
 } from '@phosphor-icons/react'
 import api from '../api'
 import Layout from '../components/Layout'
@@ -90,10 +91,9 @@ function Histori({ user, onLogout }) {
       <div className="page-header histori-header">
         <div>
           <h1>Histori</h1>
-          <p>Rekap data absensi lengkap</p>
         </div>
         <div className="page-actions">
-          <button className="btn btn-primary" onClick={exportReportFile} disabled={absensi.length === 0}>
+          <button className="btn btn-secondary btn-sm" onClick={exportReportFile} disabled={absensi.length === 0}>
             <DownloadSimple weight="duotone" /> Ekspor Laporan
           </button>
         </div>
@@ -168,8 +168,8 @@ function Histori({ user, onLogout }) {
                       <td className="catatan-col hide-mobile">{abs.catatan || '-'}</td>
                       <td>
                         {abs.foto_kegiatan ? (
-                          <a href={`/uploads/${abs.foto_kegiatan}`} target="_blank" rel="noopener noreferrer">
-                            <img src={`/uploads/${abs.foto_kegiatan}`} className="photo-thumb" alt="Foto kegiatan" />
+                          <a href={`/uploads/${abs.foto_kegiatan}`} target="_blank" rel="noopener noreferrer" className="photo-icon" title="Lihat foto">
+                            <Image weight="duotone" />
                           </a>
                         ) : '-'}
                       </td>
