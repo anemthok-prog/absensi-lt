@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: absensi-lt-mtsn1
+    runtime: node
+    plan: free
+    buildCommand: npm install && cd client && npm install && npm run build
+    startCommand: node server/index.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: DATABASE_URL
+        sync: false          # isi manual: connection string Neon (dengan -pooler)
+      - key: JWT_SECRET
+        generateValue: true  # Render bikin secret acak
+      - key: CLIENT_URL
+        sync: false          # opsional utk single-origin; biarkan default /api
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false          # isi password admin tes (min 8, campuran)
+      - key: MAIL_LOGGING
+        value: "true"        # mode tes: OTP tampil di layar, ga ngirim email asli

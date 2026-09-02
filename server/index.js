@@ -92,6 +92,18 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/kelas', kelasRoutes);
 app.use('/api/shift', shiftRoutes);
 
+// Serve frontend build (produksi) — single-origin deploy (Render/server host).
+const clientDist = path.join(__dirname, '../client/dist');
+app.use(express.static(clientDist));
+
+// SPA fallback: route client-side (BrowserRouter) → kembalikan index.html
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.startsWith('/uploads')) {
+    return res.sendFile(path.join(clientDist, 'index.html'));
+  }
+  next();
+});
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
