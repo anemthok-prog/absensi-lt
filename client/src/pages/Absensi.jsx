@@ -55,12 +55,44 @@ function Absensi({ user, onLogout }) {
     setFormData({ ...formData, [name]: value })
   }
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0]
-    if (file) {
-      setFormData({ ...formData, foto_kegiatan: file })
+    if (!file) return
+    if (file.size > 8 * 1024 * 1024) {
+      setToast({ open: true, message: 'Foto terlalu besar (maks 8MB). Pilih foto lain.', type: 'error' })
+      e.target.value = ''
+      return
     }
+    // Kompres & resize gambar di client biar upload cepat (kecil, bukan 5MB mentah)
+    const compressed = await compressImage(file)
+    setFormData({ ...formData, foto_kegiatan: compressed })
   }
+
+  // Resize + kompres gambar (canvas) -> JPEG kecil biar upload nggak lama
+  const compressImage = (file) => new Promise((resolve) => {
+    if (file.type === 'application/pdf') return resolve(file) // PDF: kirim apa adanya
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      const MAX = 900
+      let { width, height } = img
+      if (width > MAX || height > MAX) {
+        const scale = MAX / Math.max(width, height)
+        width = Math.round(width * scale)
+        height = Math.round(height * scale)
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+      canvas.toBlob((blob) => {
+        URL.revokeObjectURL(url)
+        resolve(blob || file)
+      }, 'image/jpeg', 0.75)
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+    img.src = url
+  })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -75,7 +107,9 @@ function Absensi({ user, onLogout }) {
       formDataToSend.append('status', formData.status)
       formDataToSend.append('catatan', formData.catatan)
       if (formData.foto_kegiatan) {
-        formDataToSend.append('foto_kegiatan', formData.foto_kegiatan)
+        const fileObj = formData.foto_kegiatan
+        const ext = (fileObj.name || '').split('.').pop() || (fileObj.type === 'application/pdf' ? 'pdf' : 'jpg')
+        formDataToSend.append('foto_kegiatan', fileObj, `foto_kegiatan.${ext}`)
       }
 
       await api.post('/absensi', formDataToSend, {
@@ -192,10 +226,10 @@ function Absensi({ user, onLogout }) {
               />
               <span className={`file-label ${formData.foto_kegiatan ? 'has-file' : ''}`}>
                 <UploadSimple weight="duotone" />
-                {formData.foto_kegiatan ? formData.foto_kegiatan.name : 'Pilih berkas atau seret ke sini'}
+                {formData.foto_kegiatan ? (formData.foto_kegiatan.name || 'Foto siap diunggah') : 'Pilih berkas atau seret ke sini'}
               </span>
             </label>
-            <p className="form-hint">Ukuran maksimal 5MB. Format: JPG, PNG, GIF</p>
+            <p className="form-hint">Foto otomatis dikompres & di-resize biar upload cepat (maks 8MB). Format: JPG, PNG, GIF, WEBP</p>
           </div>
 
           <div className="form-group">
