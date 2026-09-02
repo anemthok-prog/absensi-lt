@@ -165,6 +165,40 @@ async function runMigrations() {
   } else {
     console.log('⚠️  ADMIN_PASSWORD belum diset — akun admin TIDAK dibuat otomatis.');
   }
+
+  // Auto-seed data jadwal (guru_map + jadwal) kalau masih kosong — biar app langsung kebuka
+  // dengan jadwal dari PDF pas deploy. Idempotent.
+  const { GURU_MAP, JADWAL } = require('./data/jadwal-data');
+  const { rows: [{ c: gmCount }] } = await pool.query('SELECT COUNT(*)::int AS c FROM guru_map');
+  if (gmCount === 0) {
+    for (const [kode, nama, jenis] of GURU_MAP) {
+      await pool.query(`INSERT INTO guru_map (kode, nama_guru, jenis_layanan) VALUES ($1,$2,$3) ON CONFLICT (kode) DO NOTHING`, [kode, nama, jenis]);
+    }
+    for (const [hari, jam, kelas, kode, ket] of JADWAL) {
+      await pool.query(`INSERT INTO jadwal (hari, jam, kelas, kode_guru, keterangan) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (hari, jam, kelas) DO NOTHING`, [hari, jam, kelas, kode, ket]);
+    }
+    console.log(`✓ Auto-seed jadwal: ${GURU_MAP.length} guru_map + ${JADWAL.length} baris jadwal`);
+  }
+  // Auto-buat akun guru dari guru_map kalau GURU_DEFAULT_PASSWORD di-set (biar guru PDF bisa login utk tes)
+  const guruPw = process.env.GURU_DEFAULT_PASSWORD;
+  if (guruPw && guruPw.length >= 8) {
+    const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '');
+    let created = 0;
+    for (const [kode, nama] of GURU_MAP) {
+      const namaBersih = nama.split(',')[0].trim();
+      const uname = slug(namaBersih) || ('guru.' + kode.toLowerCase());
+      const exists = await pool.query('SELECT id FROM users WHERE guru_map_kode = $1', [kode]);
+      if (exists.rowCount > 0) continue;
+      const hashed = await bcrypt.hash(guruPw, 10);
+      const r = await pool.query(
+        `INSERT INTO users (username, email, password, full_name, role, status, guru_map_kode)
+         VALUES ($1,$2,$3,$4,'guru','active',$5) ON CONFLICT (username) DO NOTHING`,
+        [uname, `${uname}@mtsn1kebumen.id`, hashed, namaBersih, kode]
+      );
+      if (r.rowCount > 0) created++;
+    }
+    if (created) console.log(`✓ Auto-buat akun guru (password dari GURU_DEFAULT_PASSWORD): ${created}`);
+  }
 }
 
 module.exports = { runMigrations };
