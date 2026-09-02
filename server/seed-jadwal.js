@@ -146,28 +146,33 @@ async function seed() {
   console.log(`✓ Jadwal: ${cJadwal} baris (seed terproses: ${inserted})`);
 
   // ==== Buat akun guru dari guru_map (data guru yang bisa akses) ====
+  // GURU_DEFAULT_PASSWORD WAJIB di-set — TANPA itu, akun guru TIDAK dibuat (hindari password
+  // default yang mudah ditebak). Data guru_map + jadwal tetap di-seed.
   const bcrypt = require('bcryptjs');
-  const DEFAULT_PW = process.env.GURU_DEFAULT_PASSWORD || 'Guru2026';
-  const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '');
-  let linked = 0;
-  for (const [kode, nama, jenis] of GURU_MAP) {
-    // nama bersih tanpa gelar (untuk username & email)
-    const namaBersih = nama.split(',')[0].trim();
-    const uname = slug(namaBersih) || ('guru.' + kode.toLowerCase());
-    const email = `${uname}@mtsn1kebumen.id`;
-    const sudah = await pool.query('SELECT id FROM users WHERE guru_map_kode = $1', [kode]);
-    if (sudah.rowCount > 0) { linked++; continue; }
-    const hashed = await bcrypt.hash(DEFAULT_PW, 10);
-    const r = await pool.query(
-      `INSERT INTO users (username, email, password, full_name, role, status, guru_map_kode)
-       VALUES ($1, $2, $3, $4, 'guru', 'active', $5)
-       ON CONFLICT (username) DO NOTHING`,
-      [uname, email, hashed, namaBersih, kode]
-    );
-    if (r.rowCount > 0) linked++;
+  const DEFAULT_PW = process.env.GURU_DEFAULT_PASSWORD;
+  if (!DEFAULT_PW || DEFAULT_PW.length < 8) {
+    console.log('⚠️ GURU_DEFAULT_PASSWORD belum di-set (min 8 karakter) — akun guru SKIP. Data jadwal tetap masuk.');
+  } else {
+    const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '');
+    let linked = 0;
+    for (const [kode, nama] of GURU_MAP) {
+      const namaBersih = nama.split(',')[0].trim();
+      const uname = slug(namaBersih) || ('guru.' + kode.toLowerCase());
+      const email = `${uname}@mtsn1kebumen.id`;
+      const sudah = await pool.query('SELECT id FROM users WHERE guru_map_kode = $1', [kode]);
+      if (sudah.rowCount > 0) { linked++; continue; }
+      const hashed = await bcrypt.hash(DEFAULT_PW, 10);
+      const r = await pool.query(
+        `INSERT INTO users (username, email, password, full_name, role, status, guru_map_kode)
+         VALUES ($1, $2, $3, $4, 'guru', 'active', $5)
+         ON CONFLICT (username) DO NOTHING`,
+        [uname, email, hashed, namaBersih, kode]
+      );
+      if (r.rowCount > 0) linked++;
+    }
+    const { rows: [{ c: cLink }] } = await pool.query('SELECT COUNT(*)::int AS c FROM users WHERE guru_map_kode IS NOT NULL');
+    console.log(`✓ Akun guru ter-link: ${cLink}`);
   }
-  const { rows: [{ c: cLink }] } = await pool.query('SELECT COUNT(*)::int AS c FROM users WHERE guru_map_kode IS NOT NULL');
-  console.log(`✓ Akun guru ter-link: ${cLink} (password default: ${DEFAULT_PW})`);
 
   await pool.end();
   console.log('Seed jadwal selesai.');

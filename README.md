@@ -45,9 +45,10 @@ npm start
 #    → buka http://localhost:5001
 ```
 
-Login default (setelah `seed-demo.js`):
-- **Admin:** `admin` / `admin123`
-- **Guru demo:** `guru.budi` / `Guru1234` (dan `guru.siti`, `guru.agus`, dst.)
+> ⚠️ **Akun demo (DEV/TEST SAJA — JANGAN dipakai produksi):**
+> - Admin demo: `admin` / `admin123` — **hanya** dibuat oleh `seed-demo.js` (opsional) & `setup-db.js` bila `ADMIN_PASSWORD` KOSONG.
+> - Guru demo: `guru.budi` / `Guru1234` (dan `guru.siti`, dst.) — hardcoded di `seed-demo.js`.
+> **WAJIB utk produksi:** set `ADMIN_PASSWORD` kuat (min 8, campur huruf+angka+simbol). Kalau di-set, admin TIDAK dibuat dengan `admin123` — password admin jadi `ADMIN_PASSWORD` kamu. Jangan pernah pakai akun demo di produksi; ganti semua password.
 
 > Alternatif: `bash start.sh` — script otomatis cek Node/PostgreSQL, buat `.env` default, install dependency, dan setup DB. Tetap wajib edit `.env` (DB_PASSWORD & buat akun admin).
 
