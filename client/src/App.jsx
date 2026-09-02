@@ -1,0 +1,93 @@
+import React, { useState, useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
+import Dashboard from './pages/Dashboard'
+import Profil from './pages/Profil'
+import Absensi from './pages/Absensi'
+import Histori from './pages/Histori'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminUsers from './pages/admin/AdminUsers'
+import AdminAbsensi from './pages/admin/AdminAbsensi'
+import AdminKelas from './pages/admin/AdminKelas'
+import AdminAuditLog from './pages/admin/AdminAuditLog'
+import './App.css'
+
+function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    const savedUser = localStorage.getItem('user')
+    
+    if (token && savedUser) {
+      setIsAuthenticated(true)
+      setUser(JSON.parse(savedUser))
+    }
+    setLoading(false)
+  }, [])
+
+  const handleLogin = (token, userData) => {
+    localStorage.setItem('token', token)
+    localStorage.setItem('user', JSON.stringify(userData))
+    setIsAuthenticated(true)
+    setUser(userData)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    setIsAuthenticated(false)
+    setUser(null)
+  }
+
+  const handleUserUpdate = (updatedUser) => {
+    localStorage.setItem('user', JSON.stringify(updatedUser))
+    setUser(updatedUser)
+  }
+
+  if (loading) {
+    return <div className="loading-screen">Loading...</div>
+  }
+
+  return (
+    <Router>
+      <Routes>
+        {!isAuthenticated ? (
+          <>
+            <Route path="/login" element={<Login onLogin={handleLogin} />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="*" element={<Navigate to="/login" />} />
+          </>
+        ) : (
+          <>
+            {user?.role === 'admin' ? (
+              <>
+                <Route path="/admin" element={<AdminDashboard user={user} onLogout={handleLogout} />} />
+                <Route path="/admin/users" element={<AdminUsers user={user} onLogout={handleLogout} />} />
+                <Route path="/admin/absensi" element={<AdminAbsensi user={user} onLogout={handleLogout} />} />
+                <Route path="/admin/kelas" element={<AdminKelas user={user} onLogout={handleLogout} />} />
+                <Route path="/admin/audit" element={<AdminAuditLog user={user} onLogout={handleLogout} />} />
+                <Route path="/profil" element={<Profil user={user} onLogout={handleLogout} onUpdateUser={handleUserUpdate} />} />
+                <Route path="*" element={<Navigate to="/admin" />} />
+              </>
+            ) : (
+              <>
+                <Route path="/" element={<Dashboard user={user} onLogout={handleLogout} />} />
+                <Route path="/dashboard" element={<Dashboard user={user} onLogout={handleLogout} />} />
+                <Route path="/profil" element={<Profil user={user} onLogout={handleLogout} onUpdateUser={handleUserUpdate} />} />
+                <Route path="/absensi" element={<Absensi user={user} onLogout={handleLogout} />} />
+                <Route path="/histori" element={<Histori user={user} onLogout={handleLogout} />} />
+                <Route path="*" element={<Navigate to="/" />} />
+              </>
+            )}
+          </>
+        )}
+      </Routes>
+    </Router>
+  )
+}
+
+export default App

@@ -1,0 +1,103 @@
+/* Absensi (form isi absensi) */
+
+.absensi-form-card {
+  max-width: none;
+}
+/* Konten form dibatasi biar tidak melar di layar lebar (card tetap full-width) */
+.absensi-form-card form,
+.info-card ul {
+  max-width: 880px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.file-input-wrapper {
+  position: relative;
+  display: block;
+  cursor: pointer;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius);
+  padding: 22px;
+  text-align: center;
+  background: var(--surface-2);
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.file-input-wrapper:hover {
+  border-color: var(--accent-border);
+  background: var(--accent-dim);
+}
+
+.file-input-wrapper input[type="file"] {
+  display: none;
+}
+
+.file-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.file-label svg { color: var(--accent); width: 20px; height: 20px; }
+
+.file-label.has-file { color: var(--accent); }
+
+.form-hint {
+  color: var(--text-faint);
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.info-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+  margin-top: 4px;
+  max-width: none;
+}
+
+.info-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  margin-bottom: 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.info-card h3 svg { color: var(--accent); width: 18px; height: 18px; }
+
+.info-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.info-card li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 13.5px;
+  margin-bottom: 10px;
+}
+
+.info-card li svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--accent);
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 768px) {
+  .absensi-form-card,
+  .info-card {
+    max-width: 100%;
+  }
+}

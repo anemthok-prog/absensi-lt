@@ -1,0 +1,48 @@
+.kelas-add { margin-bottom: 16px; }
+.kelas-add-form { display: flex; gap: 10px; align-items: center; max-width: 420px; }
+.kelas-add-form .form-control { flex: 1; }
+
+.form-control {
+  padding: 11px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 14px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+.form-control:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.kelas-name { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.kelas-name svg { color: var(--accent); width: 18px; height: 18px; }
+
+.th-actions { width: 120px; text-align: right; }
+.kelas-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.kelas-actions input { width: 120px; }
+
+.btn-sm {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.empty { text-align: center; color: var(--text-muted); padding: 28px 0; }
+
+@media (max-width: 480px) {
+  .kelas-add-form { flex-direction: column; align-items: stretch; max-width: none; }
+}
+
+.kelas-tabs { display: flex; gap: 10px; margin-bottom: 18px; }
+.kelas-tab {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 16px; background: var(--surface-2); border: 1px solid var(--border-strong);
+  border-radius: var(--radius); color: var(--text-muted); font-weight: 600; font-size: 14px;
+  cursor: pointer; transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+.kelas-tab svg { width: 18px; height: 18px; }
+.kelas-tab:hover { color: var(--accent); border-color: var(--accent-border); }
+.kelas-tab.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent-border); }
+.kelas-panel .alert { margin-bottom: 16px; }

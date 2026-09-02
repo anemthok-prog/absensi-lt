@@ -1,0 +1,239 @@
+import React, { useState, useEffect } from 'react'
+import {
+  UploadSimple,
+  Info,
+  CheckCircle,
+  XCircle,
+} from '@phosphor-icons/react'
+import api from '../api'
+import Layout from '../components/Layout'
+import { STATUS_LIST } from '../constants'
+import './Absensi.css'
+
+function Absensi({ user, onLogout }) {
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
+  const [formData, setFormData] = useState({
+    tanggal: today,
+    shift: 'siang',
+    kelas: '',
+    status: 'hadir',
+    catatan: '',
+    foto_kegiatan: null,
+  })
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState('')
+  const [kelasList, setKelasList] = useState([])
+  const [shiftList, setShiftList] = useState([])
+
+  // Ambil daftar kelas & shift dinamis dari DB (dikelola admin)
+  useEffect(() => {
+    api.get('/kelas')
+      .then((res) => setKelasList((res.data.kelas || []).map((k) => k.nama)))
+      .catch(() => setKelasList([]))
+    api.get('/shift')
+      .then((res) => setShiftList((res.data.shift || []).map((s) => s.nama)))
+      .catch(() => setShiftList([]))
+  }, [])
+
+  const klasesList = kelasList
+
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setFormData({ ...formData, [name]: value })
+  }
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setFormData({ ...formData, foto_kegiatan: file })
+    }
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setMessage('')
+
+    try {
+      const formDataToSend = new FormData()
+      formDataToSend.append('tanggal', formData.tanggal)
+      formDataToSend.append('shift', formData.shift)
+      formDataToSend.append('kelas', formData.kelas)
+      formDataToSend.append('status', formData.status)
+      formDataToSend.append('catatan', formData.catatan)
+      if (formData.foto_kegiatan) {
+        formDataToSend.append('foto_kegiatan', formData.foto_kegiatan)
+      }
+
+      await api.post('/absensi', formDataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+
+      setMessageType('success')
+      setMessage('Absensi berhasil disubmit')
+
+      // Reset form
+      setTimeout(() => {
+        setFormData({
+          tanggal: new Date().toISOString().split('T')[0],
+          shift: 'siang',
+          kelas: '',
+          status: 'hadir',
+          catatan: '',
+          foto_kegiatan: null,
+        })
+        setMessage('')
+      }, 2000)
+    } catch (err) {
+      setMessageType('error')
+      setMessage(err.response?.data?.message || 'Gagal submit absensi')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Layout user={user} onLogout={onLogout} role={user?.role} active="absensi">
+      <div className="page-header">
+        <h1>Absensi</h1>
+        <p>Catat kehadiran dan aktivitas Anda setiap hari</p>
+      </div>
+
+      <div className="card absensi-form-card">
+        {message && (
+          <div className={`alert alert-${messageType}`}>
+            {message}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="tanggal">Tanggal *</label>
+              <input
+                id="tanggal"
+                type="date"
+                name="tanggal"
+                value={formData.tanggal}
+                onChange={handleChange}
+                min={today}
+                max={today}
+                readOnly
+                required
+                disabled={loading}
+              />
+              <p className="form-hint">Tanggal dikunci hari ini untuk mencegah manipulasi.</p>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="shift">Shift *</label>
+              <select
+                id="shift"
+                name="shift"
+                value={formData.shift}
+                onChange={handleChange}
+                required
+                disabled={loading}
+              >
+                {shiftList.map(s => (
+                  <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="kelas">Kelas *</label>
+              <select
+                id="kelas"
+                name="kelas"
+                value={formData.kelas}
+                onChange={handleChange}
+                required
+                disabled={loading}
+              >
+                <option value="">Pilih Kelas</option>
+                {klasesList.map(k => (
+                  <option key={k} value={k}>{k}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="status">Status *</label>
+              <select
+                id="status"
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                required
+                disabled={loading}
+              >
+                {STATUS_LIST.map(s => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="foto">Unggah Foto Kegiatan</label>
+            <label htmlFor="foto" className="file-input-wrapper">
+              <input
+                id="foto"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                disabled={loading}
+              />
+              <span className={`file-label ${formData.foto_kegiatan ? 'has-file' : ''}`}>
+                <UploadSimple weight="duotone" />
+                {formData.foto_kegiatan ? formData.foto_kegiatan.name : 'Pilih berkas atau seret ke sini'}
+              </span>
+            </label>
+            <p className="form-hint">Ukuran maksimal 5MB. Format: JPG, PNG, GIF</p>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="catatan">Catatan</label>
+            <textarea
+              id="catatan"
+              name="catatan"
+              value={formData.catatan}
+              onChange={handleChange}
+              placeholder="Masukkan catatan (opsional)"
+              rows="5"
+              disabled={loading}
+            ></textarea>
+          </div>
+
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Mengirim...' : 'Kirim Absensi'}
+            </button>
+            <a href="/" className="btn btn-secondary">
+              Kembali
+            </a>
+          </div>
+        </form>
+      </div>
+
+      <div className="info-card">
+        <h3><Info weight="duotone" /> Informasi Penting</h3>
+        <ul>
+          <li><CheckCircle weight="duotone" /> Pastikan semua data yang Anda isi sudah benar sebelum mengirim</li>
+          <li><CheckCircle weight="duotone" /> Setiap tanggal dan shift hanya boleh diisi satu kali</li>
+          <li><CheckCircle weight="duotone" /> Anda dapat mengubah absensi dalam waktu 24 jam setelah dikirim</li>
+          <li><CheckCircle weight="duotone" /> Unggah foto kegiatan untuk mendokumentasikan aktivitas Anda</li>
+        </ul>
+      </div>
+    </Layout>
+  )
+}
+
+export default Absensi
+

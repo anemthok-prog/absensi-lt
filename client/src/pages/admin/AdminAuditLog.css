@@ -1,0 +1,16 @@
+.audit-loading { color: var(--text-muted); padding: 24px 0; text-align: center; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.audit-loading svg { width: 20px; height: 20px; color: var(--accent); }
+.audit-time { white-space: nowrap; color: var(--text-muted); font-size: 12.5px; }
+.audit-ip { color: var(--text-faint); font-size: 12px; }
+.audit-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.audit-accent { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); }
+.audit-ok { background: var(--status-hadir-bg); color: var(--status-hadir); border: 1px solid var(--accent-border); }
+.audit-danger { background: var(--status-alpa-bg); color: var(--status-alpa); border: 1px solid var(--status-alpa-bg); }
+.audit-warn { background: rgba(245, 158, 11, 0.12); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); }

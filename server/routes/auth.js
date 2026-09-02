@@ -1,0 +1,447 @@
+const express = require('express');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { body, validationResult } = require('express-validator');
+const pool = require('../db');
+const { auditLog } = require('../middleware/auth');
+const { sendOtpEmail } = require('../mailer');
+const upload = require('../middleware/upload');
+
+const router = express.Router();
+
+// In-memory rate limit untuk cooldown forgot-password (30 detik per email)
+const forgotCooldowns = new Map();
+
+// Register new guru
+router.post('/register', [
+  body('username').isLength({ min: 4 }).withMessage('Username min 4 char'),
+  body('email').isEmail().withMessage('Invalid email'),
+  body('password').isLength({ min: 8 }).withMessage('Password min 8 char'),
+  body('full_name').notEmpty().withMessage('Full name required'),
+  body('nip').notEmpty().withMessage('NIP required'),
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { username, email, password, full_name, nip, kelas, jabatan, no_hp } = req.body;
+
+    // Check if user exists
+    const userExists = await pool.query(
+      'SELECT id FROM users WHERE username = $1 OR email = $2',
+      [username, email]
+    );
+
+    if (userExists.rows.length > 0) {
+      return res.status(400).json({ message: 'Username or email already exists' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert user
+    const result = await pool.query(
+      `INSERT INTO users (username, email, password, full_name, nip, kelas, jabatan, no_hp, role)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING id, username, email, full_name, role`,
+      [username, email, hashedPassword, full_name, nip, kelas, jabatan, no_hp, 'guru']
+    );
+
+    await auditLog('CREATE', 'users', result.rows[0].id, {}, result.rows[0], req);
+
+    res.status(201).json({
+      message: 'User registered successfully',
+      user: result.rows[0],
+    });
+  } catch (err) {
+    console.error('Register error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Login
+router.post('/login', [
+  body('username').notEmpty().withMessage('Username required'),
+  body('password').notEmpty().withMessage('Password required'),
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { username, password } = req.body;
+
+    // Find user
+    const result = await pool.query(
+      'SELECT * FROM users WHERE username = $1 AND status = $2',
+      [username, 'active']
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const user = result.rows[0];
+
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+
+    if (!isValidPassword) {
+      await auditLog('LOGIN_FAILED', 'users', user.id, {}, { username }, req);
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Generate JWT
+    const token = jwt.sign(
+      { id: user.id, username: user.username, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRE }
+    );
+
+    await auditLog('LOGIN', 'users', user.id, {}, { username, role: user.role }, req);
+
+    res.json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        full_name: user.full_name,
+        role: user.role,
+        kelas: user.kelas,
+        foto_profil: user.foto_profil,
+      },
+    });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get current user
+router.get('/me', require('../middleware/auth').verifyToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, username, email, full_name, nip, role, kelas, jabatan, no_hp, foto_profil, status, created_at FROM users WHERE id = $1',
+      [req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ user: result.rows[0] });
+  } catch (err) {
+    console.error('Get user error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update current user profile (guru can edit own basic info + email)
+router.put('/me', require('../middleware/auth').verifyToken, [
+  body('full_name').optional().notEmpty().withMessage('Full name cannot be empty'),
+  body('email').optional().isEmail().withMessage('Email tidak valid'),
+  body('jabatan').optional(),
+  body('no_hp').optional(),
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { full_name, email, jabatan, no_hp } = req.body;
+
+    const existing = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Dupe-check email (kecuali diri sendiri)
+    if (email) {
+      const dupe = await pool.query(
+        'SELECT id FROM users WHERE email = $1 AND id <> $2',
+        [String(email).toLowerCase().trim(), req.user.id]
+      );
+      if (dupe.rows.length > 0) {
+        return res.status(400).json({ message: 'Email sudah digunakan oleh pengguna lain' });
+      }
+    }
+
+    const result = await pool.query(
+      `UPDATE users SET
+         full_name = COALESCE($1, full_name),
+         email = COALESCE($2, email),
+         jabatan = COALESCE($3, jabatan),
+         no_hp = COALESCE($4, no_hp),
+         updated_at = CURRENT_TIMESTAMP
+       WHERE id = $5
+       RETURNING id, username, email, full_name, nip, role, kelas, jabatan, no_hp, foto_profil, status`,
+      [full_name || null, (email ? String(email).toLowerCase().trim() : null), jabatan || null, no_hp || null, req.user.id]
+    );
+
+    await auditLog('UPDATE', 'users', req.user.id, existing.rows[0], result.rows[0], req);
+
+    res.json({
+      message: 'Profil berhasil diperbarui',
+      user: result.rows[0],
+    });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Change current user password
+router.put('/password', require('../middleware/auth').verifyToken, [
+  body('oldPassword').notEmpty().withMessage('Password lama wajib diisi'),
+  body('newPassword').isLength({ min: 8 }).withMessage('Password baru minimal 8 karakter'),
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { oldPassword, newPassword } = req.body;
+
+    const result = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Pengguna tidak ditemukan' });
+    }
+
+    const user = result.rows[0];
+
+    // Verifikasi password lama
+    const isValid = await bcrypt.compare(oldPassword, user.password);
+    if (!isValid) {
+      return res.status(400).json({ message: 'Password lama tidak sesuai' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await pool.query(
+      'UPDATE users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      [hashedPassword, req.user.id]
+    );
+
+    await auditLog('CHANGE_PASSWORD', 'users', req.user.id, {}, { id: req.user.id }, req);
+
+    res.json({ message: 'Password berhasil diganti' });
+  } catch (err) {
+    console.error('Change password error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ====== FORGOT PASSWORD + OTP ======
+
+// 1) Request OTP via email
+router.post('/forgot-password', [
+  body('email').isEmail().withMessage('Email tidak valid'),
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { email } = req.body;
+    const lowerEmail = String(email).toLowerCase().trim();
+
+    // Cooldown 30 detik per email (anti-spam)
+    const last = forgotCooldowns.get(lowerEmail);
+    if (last && Date.now() - last < 30000) {
+      return res.status(429).json({ message: 'Terlalu cepat. Coba lagi dalam 30 detik.' });
+    }
+    forgotCooldowns.set(lowerEmail, Date.now());
+
+    const userResult = await pool.query(
+      'SELECT id, email, full_name FROM users WHERE email = $1 AND status = $2',
+      [lowerEmail, 'active']
+    );
+
+    // Selalu balas sukses (hindari enumerasi email). Kalau user tak ada, tak kirim apa pun.
+    if (userResult.rows.length === 0) {
+      return res.json({ message: 'Jika email terdaftar, kode OTP telah dikirim.' });
+    }
+
+    const user = userResult.rows[0];
+
+    // Generate 6-digit OTP
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    const otpHash = await bcrypt.hash(otp, 8);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 menit
+
+    // Nonaktifkan reset lama yang belum dipakai (single active)
+    await pool.query(
+      'UPDATE password_resets SET used = true WHERE email = $1 AND used = false',
+      [lowerEmail]
+    );
+
+    await pool.query(
+      'INSERT INTO password_resets (email, otp_hash, expires_at) VALUES ($1, $2, $3)',
+      [lowerEmail, otpHash, expiresAt]
+    );
+
+    const sendResult = await sendOtpEmail(lowerEmail, otp, user.full_name);
+
+    const dev = process.env.MAIL_LOGGING === 'true';
+    res.json({
+      message: 'Jika email terdaftar, kode OTP telah dikirim.',
+      // Hanya dikembalikan saat dev logging — supaya alur teruji tanpa SMTP asli
+      ...(dev ? { dev_otp: otp, dev_sent: sendResult.delivered, dev_note: sendResult.reason || 'logged' } : {}),
+    });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// 2) Verify OTP -> balas reset token JWT (berlaku 10 menit)
+router.post('/verify-otp', [
+  body('email').isEmail().withMessage('Email tidak valid'),
+  body('otp').isLength({ min: 6, max: 6 }).withMessage('OTP 6 digit'),
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { email, otp } = req.body;
+    const lowerEmail = String(email).toLowerCase().trim();
+
+    const resetResult = await pool.query(
+      `SELECT * FROM password_resets
+       WHERE email = $1 AND used = false
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [lowerEmail]
+    );
+
+    if (resetResult.rows.length === 0) {
+      return res.status(400).json({ message: 'Kode OTP tidak ditemukan. Minta ulang.' });
+    }
+
+    const reset = resetResult.rows[0];
+
+    if (new Date(reset.expires_at) < new Date()) {
+      return res.status(400).json({ message: 'Kode OTP sudah kedaluwarsa. Minta ulang.' });
+    }
+
+    if (reset.attempts >= 5) {
+      await pool.query('UPDATE password_resets SET used = true WHERE id = $1', [reset.id]);
+      return res.status(400).json({ message: 'Terlalu banyak percobaan. Minta ulang.' });
+    }
+
+    const isValid = await bcrypt.compare(otp, reset.otp_hash);
+    if (!isValid) {
+      await pool.query(
+        'UPDATE password_resets SET attempts = attempts + 1 WHERE id = $1',
+        [reset.id]
+      );
+      return res.status(400).json({ message: 'Kode OTP salah.' });
+    }
+
+    // OTP benar -> tandai terpakai + terbitkan reset token (short-lived JWT)
+    await pool.query('UPDATE password_resets SET used = true WHERE id = $1', [reset.id]);
+
+    const resetToken = jwt.sign(
+      { email: lowerEmail, purpose: 'password_reset' },
+      process.env.JWT_SECRET,
+      { expiresIn: '10m' }
+    );
+
+    res.json({ message: 'OTP valid', reset_token: resetToken, email: lowerEmail });
+  } catch (err) {
+    console.error('Verify OTP error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// 3) Reset password pakai reset token
+router.post('/reset-password', [
+  body('email').isEmail().withMessage('Email tidak valid'),
+  body('reset_token').notEmpty().withMessage('Token wajib diisi'),
+  body('newPassword').isLength({ min: 8 }).withMessage('Password baru minimal 8 karakter'),
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { email, reset_token, newPassword } = req.body;
+    const lowerEmail = String(email).toLowerCase().trim();
+
+    let decoded;
+    try {
+      decoded = jwt.verify(reset_token, process.env.JWT_SECRET);
+    } catch (e) {
+      return res.status(400).json({ message: 'Tautan reset tidak valid atau berakhir.' });
+    }
+
+    if (decoded.purpose !== 'password_reset' || decoded.email !== lowerEmail) {
+      return res.status(400).json({ message: 'Tautan reset tidak valid.' });
+    }
+
+    const userResult = await pool.query(
+      'SELECT id FROM users WHERE email = $1 AND status = $2',
+      [lowerEmail, 'active']
+    );
+    if (userResult.rows.length === 0) {
+      return res.status(400).json({ message: 'Pengguna tidak ditemukan.' });
+    }
+
+    const user = userResult.rows[0];
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await pool.query(
+      'UPDATE users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      [hashedPassword, user.id]
+    );
+
+    // Bersihkan semua kode reset untuk email ini
+    await pool.query('DELETE FROM password_resets WHERE email = $1', [lowerEmail]);
+
+    await auditLog('RESET_PASSWORD', 'users', user.id, {}, { id: user.id, email: lowerEmail }, req);
+
+    res.json({ message: 'Password berhasil diubah. Silakan masuk.' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Upload / ganti foto profil sendiri (guru & admin)
+router.put('/me/photo', require('../middleware/auth').verifyToken, upload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'File tidak ditemukan. Pilih foto untuk diunggah.' });
+    }
+    const fotoProfil = req.file.filename;
+
+    const result = await pool.query(
+      'UPDATE users SET foto_profil = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, username, email, full_name, nip, role, kelas, jabatan, no_hp, foto_profil',
+      [fotoProfil, req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Pengguna tidak ditemukan' });
+    }
+
+    await auditLog('UPDATE', 'users', req.user.id, {}, { foto_profil: fotoProfil }, req);
+
+    res.json({ message: 'Foto profil berhasil diperbarui', user: result.rows[0] });
+  } catch (err) {
+    console.error('Upload photo error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+module.exports = router;

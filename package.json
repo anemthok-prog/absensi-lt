@@ -1,0 +1,35 @@
+{
+  "name": "absensi-lt-mtsn1",
+  "version": "1.0.0",
+  "description": "Sistem Absensi Guru LT MTsN 1 Kebumen",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js",
+    "client": "cd client && npm start",
+    "build": "cd client && npm run build",
+    "setup-db": "node server/setup-db.js"
+  },
+  "keywords": [
+    "absensi",
+    "guru",
+    "mtsn"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "express-rate-limit": "^8.7.0",
+    "express-validator": "^7.0.0",
+    "jsonwebtoken": "^9.0.0",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^9.1.1",
+    "pg": "^8.8.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
