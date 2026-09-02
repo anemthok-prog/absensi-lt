@@ -5,8 +5,9 @@ const ThemeContext = createContext()
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('theme')
+    // Default SELALU light (bukan ngikutin OS) — perbaikan
     if (saved === 'light' || saved === 'dark') return saved
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    return 'light'
   })
 
   useEffect(() => {
@@ -16,8 +17,14 @@ export function ThemeProvider({ children }) {
 
   const toggle = () => setTheme(t => (t === 'light' ? 'dark' : 'light'))
 
+  // Reset ke light — dipakai saat logout
+  const resetTheme = () => {
+    localStorage.setItem('theme', 'light')
+    setTheme('light')
+  }
+
   return (
-    <ThemeContext.Provider value={{ theme, toggle }}>
+    <ThemeContext.Provider value={{ theme, toggle, resetTheme }}>
       {children}
     </ThemeContext.Provider>
   )

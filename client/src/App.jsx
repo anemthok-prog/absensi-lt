@@ -12,8 +12,10 @@ import AdminAbsensi from './pages/admin/AdminAbsensi'
 import AdminKelas from './pages/admin/AdminKelas'
 import AdminAuditLog from './pages/admin/AdminAuditLog'
 import './App.css'
+import { useTheme } from './ThemeContext'
 
 function App() {
+  const { resetTheme } = useTheme()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -39,6 +41,7 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+    resetTheme() // logout → tema balik ke light
     setIsAuthenticated(false)
     setUser(null)
   }

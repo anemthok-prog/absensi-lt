@@ -6,7 +6,7 @@ const verifyToken = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ message: 'No token provided' });
+    return res.status(401).json({ message: 'Sesi berakhir, silakan login kembali' });
   }
 
   try {
@@ -14,7 +14,7 @@ const verifyToken = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (err) {
-    return res.status(401).json({ message: 'Invalid or expired token' });
+    return res.status(401).json({ message: 'Sesi tidak valid atau sudah berakhir' });
   }
 };
 
@@ -23,7 +23,7 @@ const isAdmin = async (req, res, next) => {
   try {
     const { rows } = await pool.query('SELECT role, status FROM users WHERE id = $1', [req.user.id]);
     if (rows.length === 0 || rows[0].status !== 'active' || rows[0].role !== 'admin') {
-      return res.status(403).json({ message: 'Access denied. Admin only.' });
+      return res.status(403).json({ message: 'Akses ditolak. Khusus admin.' });
     }
     req.user.role = rows[0].role;
     next();
@@ -38,7 +38,7 @@ const isGuruOrAdmin = async (req, res, next) => {
   try {
     const { rows } = await pool.query('SELECT role, status FROM users WHERE id = $1', [req.user.id]);
     if (rows.length === 0 || rows[0].status !== 'active' || !['guru', 'admin'].includes(rows[0].role)) {
-      return res.status(403).json({ message: 'Access denied.' });
+      return res.status(403).json({ message: 'Akses ditolak.' });
     }
     req.user.role = rows[0].role;
     next();

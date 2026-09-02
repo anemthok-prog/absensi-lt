@@ -8,10 +8,10 @@ const router = express.Router();
 
 // Create absensi (guru)
 router.post('/', verifyToken, isGuruOrAdmin, upload.single('foto_kegiatan'), [
-  body('tanggal').isISO8601().withMessage('Invalid date format'),
+  body('tanggal').isISO8601().withMessage('Format tanggal tidak valid'),
   body('shift').notEmpty().withMessage('Shift wajib diisi'),
-  body('kelas').notEmpty().withMessage('Kelas required'),
-  body('status').isIn(['hadir', 'sakit', 'izin', 'alpa']).withMessage('Invalid status'),
+  body('kelas').notEmpty().withMessage('Kelas wajib diisi'),
+  body('status').isIn(['hadir', 'sakit', 'izin', 'alpa']).withMessage('Status tidak valid'),
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -43,7 +43,7 @@ router.post('/', verifyToken, isGuruOrAdmin, upload.single('foto_kegiatan'), [
     );
 
     if (existing.rows.length > 0) {
-      return res.status(400).json({ message: 'Absensi already submitted for this date/shift' });
+      return res.status(400).json({ message: 'Absensi untuk tanggal dan shift ini sudah pernah dikirim' });
     }
 
     // Insert absensi
@@ -129,25 +129,25 @@ router.get('/', verifyToken, isGuruOrAdmin, async (req, res) => {
     const { bulan, tahun, user_id, page = 1, limit = 50 } = req.query;
     const offset = (page - 1) * limit;
 
-    let query = 'SELECT * FROM absensi WHERE 1=1';
+    let query = 'SELECT a.*, u.full_name AS guru_nama FROM absensi a LEFT JOIN users u ON u.id = a.user_id WHERE 1=1';
     const params = [];
 
     if (req.user.role === 'guru') {
-      query += ' AND user_id = $' + (params.length + 1);
+      query += ' AND a.user_id = $' + (params.length + 1);
       params.push(req.user.id);
     } else if (user_id) {
       // Admin: filter per guru (rekap per guru)
-      query += ' AND user_id = $' + (params.length + 1);
+      query += ' AND a.user_id = $' + (params.length + 1);
       params.push(user_id);
     }
 
     if (bulan && tahun) {
-      query += ` AND EXTRACT(MONTH FROM tanggal) = $${params.length + 1}
-                 AND EXTRACT(YEAR FROM tanggal) = $${params.length + 2}`;
+      query += ` AND EXTRACT(MONTH FROM a.tanggal) = $${params.length + 1}
+                 AND EXTRACT(YEAR FROM a.tanggal) = $${params.length + 2}`;
       params.push(parseInt(bulan), parseInt(tahun));
     }
 
-    query += ' ORDER BY tanggal DESC, shift DESC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
+    query += ' ORDER BY a.tanggal DESC, a.shift DESC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
     params.push(limit, offset);
 
     const result = await pool.query(query, params);
@@ -200,14 +200,14 @@ router.get('/:id', verifyToken, isGuruOrAdmin, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Absensi not found' });
+      return res.status(404).json({ message: 'Data absensi tidak ditemukan' });
     }
 
     const absensi = result.rows[0];
 
     // Check access
     if (req.user.role === 'guru' && absensi.user_id !== req.user.id) {
-      return res.status(403).json({ message: 'Access denied' });
+      return res.status(403).json({ message: 'Akses ditolak' });
     }
 
     res.json({ absensi });
@@ -217,8 +217,8 @@ router.get('/:id', verifyToken, isGuruOrAdmin, async (req, res) => {
   }
 });
 
-// Update absensi (guru can only update own)
-router.put('/:id', verifyToken, isGuruOrAdmin, upload.single('foto_kegiatan'), [
+// Update absensi (ADMIN ONLY — guru read-only, tidak bisa ubah/hapus)
+router.put('/:id', verifyToken, isAdmin, upload.single('foto_kegiatan'), [
   body('status').isIn(['hadir', 'sakit', 'izin', 'alpa']).withMessage('Invalid status'),
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -234,7 +234,7 @@ router.put('/:id', verifyToken, isGuruOrAdmin, upload.single('foto_kegiatan'), [
     const existing = await pool.query('SELECT * FROM absensi WHERE id = $1', [id]);
 
     if (existing.rows.length === 0) {
-      return res.status(404).json({ message: 'Absensi not found' });
+      return res.status(404).json({ message: 'Data absensi tidak ditemukan' });
     }
 
     const absensi = existing.rows[0];
@@ -251,7 +251,7 @@ router.put('/:id', verifyToken, isGuruOrAdmin, upload.single('foto_kegiatan'), [
       const hoursDiff = (now - submittedTime) / (1000 * 60 * 60);
 
       if (hoursDiff > 24) {
-        return res.status(400).json({ message: 'Can only edit within 24 hours' });
+        return res.status(400).json({ message: 'Hanya bisa mengubah dalam 24 jam' });
       }
     }
 
@@ -287,7 +287,7 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
     const existing = await pool.query('SELECT * FROM absensi WHERE id = $1', [id]);
 
     if (existing.rows.length === 0) {
-      return res.status(404).json({ message: 'Absensi not found' });
+      return res.status(404).json({ message: 'Data absensi tidak ditemukan' });
     }
 
     await pool.query('DELETE FROM absensi WHERE id = $1', [id]);

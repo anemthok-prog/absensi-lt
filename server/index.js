@@ -113,12 +113,12 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error('Error:', err);
 
-  if (err.message === 'Invalid file type. Only JPEG, PNG, GIF, PDF allowed.') {
+  if (err.message === 'Tipe file tidak valid. Hanya JPEG, PNG, GIF, PDF yang diizinkan.') {
     return res.status(400).json({ message: err.message });
   }
 
-  if (err.message.includes('File too large')) {
-    return res.status(413).json({ message: 'File size exceeds limit' });
+  if (err.message.includes('File size exceeds limit')) {
+    return res.status(413).json({ message: 'Ukuran file melebihi batas' });
   }
 
   res.status(500).json({ 

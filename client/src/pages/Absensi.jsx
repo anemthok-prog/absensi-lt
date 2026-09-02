@@ -227,7 +227,7 @@ function Absensi({ user, onLogout }) {
         <ul>
           <li><CheckCircle weight="duotone" /> Pastikan semua data yang Anda isi sudah benar sebelum mengirim</li>
           <li><CheckCircle weight="duotone" /> Setiap tanggal dan shift hanya boleh diisi satu kali</li>
-          <li><CheckCircle weight="duotone" /> Anda dapat mengubah absensi dalam waktu 24 jam setelah dikirim</li>
+          <li><CheckCircle weight="duotone" /> Anda hanya bisa melihat riwayat absensi; koreksi data ditangani admin</li>
           <li><CheckCircle weight="duotone" /> Unggah foto kegiatan untuk mendokumentasikan aktivitas Anda</li>
         </ul>
       </div>

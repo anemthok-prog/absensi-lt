@@ -149,7 +149,8 @@ function Histori({ user, onLogout }) {
                     <th>Shift</th>
                     <th>Kelas</th>
                     <th>Status</th>
-                    <th>Catatan</th>
+                    <th className="hide-mobile">Catatan</th>
+                    <th>Foto</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -164,7 +165,14 @@ function Histori({ user, onLogout }) {
                           {abs.status}
                         </span>
                       </td>
-                      <td className="catatan-col">{abs.catatan || '-'}</td>
+                      <td className="catatan-col hide-mobile">{abs.catatan || '-'}</td>
+                      <td>
+                        {abs.foto_kegiatan ? (
+                          <a href={`/uploads/${abs.foto_kegiatan}`} target="_blank" rel="noopener noreferrer">
+                            <img src={`/uploads/${abs.foto_kegiatan}`} className="photo-thumb" alt="Foto kegiatan" />
+                          </a>
+                        ) : '-'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

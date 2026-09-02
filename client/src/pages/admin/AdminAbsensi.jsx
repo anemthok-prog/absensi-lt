@@ -77,12 +77,13 @@ function AdminAbsensi({ user, onLogout }) {
       return
     }
 
-    const columns = ['Tanggal', 'Hari', 'Shift', 'Kelas', 'Status', 'Catatan']
+    const columns = ['Tanggal', 'Hari', 'Shift', 'Kelas', 'Guru', 'Status', 'Catatan']
     const rows = absensi.map(a => [
       new Date(a.tanggal).toLocaleDateString('id-ID'),
       a.hari,
       a.shift,
       a.kelas,
+      a.guru_nama || '',
       a.status,
       a.catatan || '',
     ])
@@ -93,7 +94,7 @@ function AdminAbsensi({ user, onLogout }) {
       owner: user?.full_name,
       columns,
       rows,
-      statusCols: [4],
+      statusCols: [5],
     })
   }
 
@@ -181,8 +182,10 @@ function AdminAbsensi({ user, onLogout }) {
                     <th>Hari</th>
                     <th>Shift</th>
                     <th>Kelas</th>
+                    <th>Guru</th>
                     <th>Status</th>
-                    <th>Catatan</th>
+                    <th className="hide-mobile">Catatan</th>
+                    <th>Foto</th>
                     <th>Aksi</th>
                   </tr>
                 </thead>
@@ -193,12 +196,20 @@ function AdminAbsensi({ user, onLogout }) {
                       <td>{abs.hari}</td>
                       <td className="capitalize">{abs.shift}</td>
                       <td>{abs.kelas}</td>
+                      <td>{abs.guru_nama || '-'}</td>
                       <td>
                         <span className={`status-badge status-${abs.status}`}>
                           {abs.status}
                         </span>
                       </td>
-                      <td className="catatan-col">{abs.catatan ? abs.catatan.substring(0, 30) + '...' : '-'}</td>
+                      <td className="catatan-col hide-mobile">{abs.catatan ? abs.catatan.substring(0, 30) + '...' : '-'}</td>
+                      <td>
+                        {abs.foto_kegiatan ? (
+                          <a href={`/uploads/${abs.foto_kegiatan}`} target="_blank" rel="noopener noreferrer">
+                            <img src={`/uploads/${abs.foto_kegiatan}`} className="photo-thumb" alt="Foto kegiatan" />
+                          </a>
+                        ) : '-'}
+                      </td>
                       <td>
                         <button
                           onClick={() => handleDelete(abs.id)}

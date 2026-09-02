@@ -264,6 +264,18 @@ a { color: inherit; text-decoration: none; }
   flex-shrink: 0;
 }
 
+/* Thumbnail foto absensi (tabel Data Absensi / Histori) */
+.photo-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  display: block;
+  background: var(--surface);
+}
+
 .sidebar-menu {
   display: flex;
   flex-direction: column;
@@ -961,4 +973,17 @@ html[data-theme="dark"] .form-group input[type="date"]::-webkit-calendar-picker-
   /* Table bisa di-scroll horizontal di dalam card (hindari scroll halaman) */
   .table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
   .users-table-wrapper { -webkit-overflow-scrolling: touch; }
+
+  /* Agar halaman tidak perlu zoom-out: body tidak boleh overflow horizontal,
+     tabel scroll di dalam wrapper-nya saja */
+  html, body { overflow-x: hidden; }
+  .card, .page-header, .stats-card, .page-content, .content { max-width: 100%; min-width: 0; }
+
+  /* Kolom non-penting disembunyikan di HP biar tabel muat */
+  .hide-mobile { display: none !important; }
+
+  /* Tabel lebih ringkas di HP */
+  .table { font-size: 13px; }
+  .table th, .table td { padding: 8px 9px; }
+  .photo-thumb { width: 32px; height: 32px; }
 }
